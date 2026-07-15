@@ -1,0 +1,125 @@
+networks:
+  yundoudou-editor-net:
+    name: yundoudou-editor-net
+    driver: bridge
+
+configs:
+  nginx_conf:
+    content: |
+      worker_processes auto;
+      events { worker_connections 1024; }
+      http {
+          include       /etc/nginx/mime.types;
+          default_type  application/octet-stream;
+          sendfile        on;
+          keepalive_timeout  65;
+
+          map $$host $$is_external {
+              ~*${EXTERNAL_DOMAIN:-^$$}$$  1;
+              default                       0;
+          }
+          map $$is_external $$the_scheme {
+              1       https;
+              default http;
+          }
+          upstream doc-svr { server yundoudou-editor-doc-svr:80; }
+          upstream connector { server yundoudou-editor-connector:10099; }
+
+          server {
+              listen 80;
+              server_name _;
+
+              location /doc-svr/ {
+                  rewrite ^/doc-svr/(.*)$$ /$$1 break;
+                  proxy_pass http://doc-svr;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Host $$http_host/doc-svr;
+                  proxy_set_header X-Forwarded-Proto $$the_scheme;
+              }
+
+              location / {
+                  proxy_pass http://connector;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$the_scheme;
+              }
+          }
+      }
+
+services:
+  yundoudou-editor-nginx:
+    image: nginx:alpine
+    container_name: yundoudou-editor-nginx
+    networks:
+      - yundoudou-editor-net
+    restart: unless-stopped
+    ports:
+      - '9080:80'
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+    labels:
+      watchcow.enable: "true"
+      watchcow.display_name: "云豆豆编辑器"
+      watchcow.editor.service_port: "9080"
+      watchcow.editor.protocol: "http"
+      watchcow.editor.path: "/editor"
+      watchcow.editor.ui_type: "iframe"
+      watchcow.editor.all_users: "true"
+      watchcow.editor.title: "使用云豆豆编辑器打开"
+      watchcow.editor.file_types: "docx,xlsx,pptx,doc,xls,ppt,odt,ods,odp,pdf,txt,rtf,csv,djvu,oxps,epub,fb2"
+      watchcow.editor.icon: "file://yundoudou-editor.png"
+      watchcow.editor.no_display: "true"
+    depends_on:
+      - yundoudou-editor-connector
+      - yundoudou-editor-documentserver
+
+  yundoudou-editor-connector:
+    image: tf4fun/yundoudou-editor:latest
+    container_name: yundoudou-editor-connector
+    networks:
+      - yundoudou-editor-net
+    restart: unless-stopped
+    environment:
+      - DOCUMENT_SERVER_URL=http://yundoudou-editor-doc-svr:80
+      - DOCUMENT_SERVER_SECRET=${JWT_SECRET}
+      - BASE_URL=http://yundoudou-editor-connector:10099
+      - DOC_SERVER_PATH=/doc-svr
+    volumes:
+      - /vol00:/vol00
+      - /vol1:/vol1
+      - /vol2:/vol2
+
+  yundoudou-editor-documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: yundoudou-editor-doc-svr
+    networks:
+      - yundoudou-editor-net
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_HEADER=Authorization
+      - JWT_IN_BODY=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/info/info.json"]
+      interval: 30s
+      retries: 5
+      start_period: 60s
+      timeout: 10s
+    volumes:
+      - ./volumes/data:/var/www/onlyoffice/Data
+      - ./volumes/log:/var/log/onlyoffice
+      - ./volumes/lib:/var/lib/onlyoffice
+      - ./volumes/plugins:/var/www/onlyoffice/documentserver/sdkjs-plugins
+      - ./volumes/fonts:/usr/share/fonts/truetype/custom

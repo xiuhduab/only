@@ -1,0 +1,63 @@
+name: Build fnOS Package
+
+on:
+  push:
+    branches:
+      - main
+      - 'dev-*'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version in manifest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          sed -i "s/version: \".*\"/version: \"$VERSION\"/" ./fpk_assets/compose.yaml
+
+      - name: Build FPK Package
+        uses: tf4fun/fpk-compose-builder@main
+        id: build
+        with:
+          input-dir: ./fpk_assets
+          output-dir: ./dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yundoudou-editor-package
+          path: ./dist/*.fpk
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: yundoudou-editor-package
+
+      - name: Get version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Rename FPK
+        run: mv *.fpk yundoudou-editor-${{ steps.version.outputs.version }}.fpk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: yundoudou-editor-${{ steps.version.outputs.version }}.fpk
+          generate_release_notes: true

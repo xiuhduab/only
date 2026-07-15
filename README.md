@@ -65,7 +65,7 @@ docker compose up -d
 
 ### 方式二：FPK 安装包
 
-前往 [Releases](https://github.com/tf4fun/yundoudou-editor/releases) 页面下载最新的 `.fpk` 安装包，在 fnOS 应用中心选择「手动安装」上传即可。
+前往 [Releases](https://github.com/xiuhduab/only/releases) 页面下载最新的 `.fpk` 安装包，在 fnOS 应用中心选择「手动安装」上传即可。
 
 > ⚠️ **FPK 包的局限性**
 > 

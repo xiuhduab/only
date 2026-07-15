@@ -84,7 +84,7 @@ services:
       - yundoudou-editor-documentserver
 
   yundoudou-editor-connector:
-    image: tf4fun/yundoudou-editor:latest
+    image: ghcr.io/xiuhduab/yundoudou-editor:main
     container_name: yundoudou-editor-connector
     networks:
       - yundoudou-editor-net

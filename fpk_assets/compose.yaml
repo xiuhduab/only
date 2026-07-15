@@ -201,7 +201,7 @@ services:
       - /var/apps/docker-yundoudou-editor/shares/yundoudou-editor/fonts:/usr/share/fonts/truetype/custom
 
   yundoudou-editor-connector:
-    image: tf4fun/yundoudou-editor:main
+    image: ghcr.io/xiuhduab/yundoudou-editor:main
     container_name: yundoudou-editor-connector
     networks:
       - yundoudou-editor-net

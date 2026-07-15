@@ -161,7 +161,7 @@ configs:
 
 services:
   yundoudou-editor-nginx:
-    image: nginx:alpine
+    image: m.daocloud.io/docker.io/library/nginx:alpine
     container_name: yundoudou-editor-nginx
     networks:
       - yundoudou-editor-net
@@ -176,7 +176,7 @@ services:
       - yundoudou-editor-documentserver
 
   yundoudou-editor-documentserver:
-    image: onlyoffice/documentserver:latest
+    image: m.daocloud.io/docker.io/onlyoffice/documentserver:latest
     container_name: yundoudou-editor-doc-svr
     networks:
       - yundoudou-editor-net
@@ -201,7 +201,7 @@ services:
       - /var/apps/docker-yundoudou-editor/shares/yundoudou-editor/fonts:/usr/share/fonts/truetype/custom
 
   yundoudou-editor-connector:
-    image: ghcr.io/xiuhduab/yundoudou-editor:main
+    image: ghcr.m.daocloud.io/xiuhduab/yundoudou-editor:main
     container_name: yundoudou-editor-connector
     networks:
       - yundoudou-editor-net
